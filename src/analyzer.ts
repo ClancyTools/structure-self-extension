@@ -23,6 +23,7 @@ export interface Finding {
   line: number
   endCharacter: number
   message: string
+  severity: "error" | "warning"
 }
 
 export interface Analysis {
@@ -103,10 +104,15 @@ export function analyze(text: string, fileVersions: number[]): Analysis {
   }
 
   const lines = splitLines(text)
-  const at = (line: number, message: string): Finding => ({
+  const at = (
+    line: number,
+    message: string,
+    severity: Finding["severity"] = "error"
+  ): Finding => ({
     line,
     endCharacter: lines[line]?.length ?? 0,
     message,
+    severity,
   })
   const overflow = overflowRows(blocks)
   const flagged = new Set(overflow.map(entry => entry.row.line))
@@ -120,6 +126,9 @@ export function analyze(text: string, fileVersions: number[]): Analysis {
     ...misplacedGroups(blocks, expected, flagged).map(group =>
       at(group.rows[0].line, moveMessage(group, blocks, expected))
     ),
+    ...orderProblems(blocks).map(problem =>
+      at(problem.line, problem.message, "warning")
+    ),
   ]
   if (findings.length === 0) {
     findings.push(
@@ -130,6 +139,35 @@ export function analyze(text: string, fileVersions: number[]): Analysis {
     )
   }
   return { conflicted: false, findings, fixedText: fixed }
+}
+
+// Duplicates (a version already seen earlier in the file) and rows out of string order
+// inside their block. Edgestitch writes unique rows in MySQL string order.
+function orderProblems(blocks: Block[]): { line: number; message: string }[] {
+  const seen = new Map<number, number>()
+  const problems: { line: number; message: string }[] = []
+  blocks.forEach(block => {
+    let previous: Row | undefined
+    block.rows.forEach(row => {
+      const first = seen.get(row.version)
+      if (first !== undefined) {
+        problems.push({
+          line: row.line,
+          message: `\`${row.version}\` is a duplicate of the row on line ${first + 1}`,
+        })
+        return
+      }
+      seen.set(row.version, row.line)
+      if (previous && byString(previous.version, row.version) > 0) {
+        problems.push({
+          line: row.line,
+          message: `\`${row.version}\` is out of order (it should come before \`${previous.version}\`)`,
+        })
+      }
+      previous = row
+    })
+  })
+  return problems
 }
 
 interface MisplacedGroup {

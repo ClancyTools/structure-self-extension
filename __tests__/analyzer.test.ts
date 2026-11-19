@@ -95,10 +95,35 @@ describe("analyze", () => {
     expect(analyze(structure([stringOrder]), all).findings).toEqual([])
     expect(analyze(structure([all]), all).findings).toEqual([
       expect.objectContaining({
-        message:
-          "INSERT blocks don't match what `bin/rails db:migrate` would generate",
+        severity: "warning",
+        message: "`13` is out of order (it should come before `2`)",
       }),
     ])
+  })
+
+  it("warns on a row that sits out of order inside its block", () => {
+    const all = versions(5)
+    const text = structure([[all[0], all[2], all[1], all[3], all[4]]])
+    const { findings } = analyze(text, all)
+
+    expect(findings).toEqual([
+      expect.objectContaining({
+        line: lineOf(text, `('${all[1]}')`),
+        severity: "warning",
+        message: `\`${all[1]}\` is out of order (it should come before \`${all[2]}\`)`,
+      }),
+    ])
+  })
+
+  it("warns on a duplicate row, pointing at the first occurrence", () => {
+    const all = versions(5)
+    const text = structure([[...all, all[1]]])
+    const { findings } = analyze(text, all)
+
+    expect(findings.map(finding => finding.severity)).toContain("warning")
+    expect(findings.map(finding => finding.message)).toContain(
+      `\`${all[1]}\` is a duplicate of the row on line ${lineOf(text, `('${all[1]}')`) + 1}`
+    )
   })
 
   it("reports a row whose migration file is gone", () => {
