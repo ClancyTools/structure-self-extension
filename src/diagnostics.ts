@@ -17,7 +17,7 @@ export function toDiagnostics(analysis: Analysis): vscode.Diagnostic[] {
     const diagnostic = new vscode.Diagnostic(
       range,
       finding.message,
-      vscode.DiagnosticSeverity.Warning
+      vscode.DiagnosticSeverity.Error
     )
     diagnostic.source = SOURCE
     return diagnostic

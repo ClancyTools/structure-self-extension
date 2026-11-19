@@ -17,13 +17,13 @@ import {
 import { chunk, fresh, structure, versions } from "./helpers"
 
 describe("toDiagnostics", () => {
-  it("turns each finding into a warning on its whole line", () => {
+  it("turns each finding into an error on its whole line", () => {
     const all = [...versions(50), ...fresh(1)]
-    const [header] = toDiagnostics(analyze(structure([all]), all))
+    const [row] = toDiagnostics(analyze(structure([all]), all))
 
-    expect(header.severity).toBe(vscode.DiagnosticSeverity.Warning)
-    expect(header.source).toBe(SOURCE)
-    expect(header.range).toEqual(new vscode.Range(5, 0, 5, 38))
+    expect(row.severity).toBe(vscode.DiagnosticSeverity.Error)
+    expect(row.source).toBe(SOURCE)
+    expect(row.range).toEqual(new vscode.Range(56, 0, 56, 19))
   })
 })
 

@@ -30,35 +30,36 @@ describe("analyze", () => {
     expect(analyze(structure(blocks), all).findings.length > 0).toBe(warns)
   })
 
-  it("warns on the header of a block over 50 rows and on the row that should start a new block", () => {
-    const all = [...versions(50), ...fresh(1)]
+  it("flags exactly the rows past the 50th", () => {
+    const all = [...versions(50), ...fresh(2)]
     const text = structure([all])
     const { findings } = analyze(text, all)
 
     expect(findings).toEqual([
       expect.objectContaining({
-        line: 5,
-        message: "INSERT block starting on line 6 has 51 rows (max 50)",
+        line: lineOf(text, `('${fresh(2)[0]}')`),
+        message: `\`${fresh(2)[0]}\` is row 51 of the INSERT block starting on line 6 (max 50)`,
       }),
       expect.objectContaining({
-        line: lineOf(text, `('${fresh(1)[0]}')`),
-        message: `\`${fresh(1)[0]}\` should be the first row of a new INSERT block`,
+        line: lineOf(text, `('${fresh(2)[1]}')`),
+        message: `\`${fresh(2)[1]}\` is row 52 of the INSERT block starting on line 6 (max 50)`,
       }),
     ])
   })
 
-  it("groups rows bound for the same new block into one warning on the first of them", () => {
+  it("flags each overflowing row of an oversized block", () => {
     const added = fresh(40)
     const blocks = chunk(versions(120))
     blocks[2] = [...blocks[2], ...added]
     const text = structure(blocks)
     const { findings } = analyze(text, [...versions(120), ...added])
 
-    expect(findings.map(finding => finding.message)).toEqual([
-      `INSERT block starting on line ${headerLines(text)[2] + 1} has 60 rows (max 50)`,
-      `\`${added[30]}\` and 9 more rows should be in a new INSERT block`,
-    ])
-    expect(findings[1].line).toBe(lineOf(text, `('${added[30]}')`))
+    expect(findings.map(finding => finding.line)).toEqual(
+      added.slice(30).map(version => lineOf(text, `('${version}')`))
+    )
+    expect(findings[0].message).toBe(
+      `\`${added[30]}\` is row 51 of the INSERT block starting on line ${headerLines(text)[2] + 1} (max 50)`
+    )
   })
 
   it("points a row that belongs in an existing block at that block's first line", () => {
@@ -139,11 +140,9 @@ describe("analyze", () => {
 
   it("covers the whole flagged line", () => {
     const all = [...versions(50), ...fresh(1)]
-    const [header] = analyze(structure([all]), all).findings
+    const [row] = analyze(structure([all]), all).findings
 
-    expect(header.endCharacter).toBe(
-      "INSERT INTO `schema_migrations` VALUES".length
-    )
+    expect(row.endCharacter).toBe(`,('${fresh(1)[0]}')`.length)
   })
 
   it("produces a fix that rebuilds the blocks and is itself clean", () => {

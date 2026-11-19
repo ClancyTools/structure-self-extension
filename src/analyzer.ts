@@ -108,14 +108,16 @@ export function analyze(text: string, fileVersions: number[]): Analysis {
     endCharacter: lines[line]?.length ?? 0,
     message,
   })
+  const overflow = overflowRows(blocks)
+  const flagged = new Set(overflow.map(entry => entry.row.line))
   const findings = [
-    ...oversized(blocks).map(block =>
+    ...overflow.map(({ row, position, block }) =>
       at(
-        block.line,
-        `INSERT block starting on line ${block.line + 1} has ${block.rows.length} rows (max ${BLOCK_SIZE})`
+        row.line,
+        `\`${row.version}\` is row ${position} of the INSERT block starting on line ${block.line + 1} (max ${BLOCK_SIZE})`
       )
     ),
-    ...misplacedGroups(blocks, expected).map(group =>
+    ...misplacedGroups(blocks, expected, flagged).map(group =>
       at(group.rows[0].line, moveMessage(group, blocks, expected))
     ),
   ]
@@ -135,13 +137,21 @@ interface MisplacedGroup {
   rows: Row[]
 }
 
-function oversized(blocks: Block[]): Block[] {
-  return blocks.filter(block => block.rows.length > BLOCK_SIZE)
+// Every row past the 50th in a block, so a 52-row block flags rows 51 and 52.
+function overflowRows(
+  blocks: Block[]
+): { row: Row; position: number; block: Block }[] {
+  return blocks.flatMap(block =>
+    block.rows
+      .slice(BLOCK_SIZE)
+      .map((row, index) => ({ row, position: BLOCK_SIZE + index + 1, block }))
+  )
 }
 
 function misplacedGroups(
   blocks: Block[],
-  expected: number[][]
+  expected: number[][],
+  skipLines: Set<number>
 ): MisplacedGroup[] {
   const expectedIndex = new Map<number, number>()
   expected.forEach((block, index) =>
@@ -152,7 +162,7 @@ function misplacedGroups(
   blocks.forEach((block, index) => {
     block.rows.forEach(row => {
       const target = expectedIndex.get(row.version)
-      if (target === index) {
+      if (target === index || skipLines.has(row.line)) {
         return
       }
       groups.set(target, [...(groups.get(target) ?? []), row])
