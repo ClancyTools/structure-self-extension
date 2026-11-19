@@ -96,4 +96,4 @@ npx @vscode/vsce package --allow-missing-repository --skip-license
 Press `F5` in VS Code to try it in an Extension Development Host. Install a packaged build with
 `code --install-extension structure-self-blocks-<version>.vsix --force`.
 
-See the Changelog tab (or `CHANGELOG.md`) for what changed in each version.
+See [CHANGELOG.md](CHANGELOG.md) for what changed in each version.
