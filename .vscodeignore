@@ -11,3 +11,4 @@ jest.config.js
 coverage/**
 **/.DS_Store
 node_modules/**
+structure-self-logo.jpg

@@ -4,6 +4,7 @@
   "description": "Warns when a db/structure-self.sql has schema_migrations rows outside the 50-row INSERT blocks that bin/rails db:migrate (Edgestitch) generates, and offers a quick fix that rebuilds them.",
   "version": "0.0.1",
   "publisher": "ClancyTools",
+  "icon": "structure-self-logo.png",
   "engines": {
     "vscode": "^1.85.0"
   },
