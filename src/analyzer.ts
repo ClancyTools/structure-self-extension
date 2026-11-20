@@ -55,6 +55,20 @@ export function parseBlocks(text: string): Block[] {
   return blocks
 }
 
+// Each row's 1-based position within its INSERT block, for the "#5" labels.
+export function rowPositions(
+  text: string
+): { line: number; endCharacter: number; position: number }[] {
+  const lines = splitLines(text)
+  return parseBlocks(text).flatMap(block =>
+    block.rows.map((row, index) => ({
+      line: row.line,
+      endCharacter: lines[row.line].length,
+      position: index + 1,
+    }))
+  )
+}
+
 export function expectedBlocks(
   fileVersions: number[],
   present: Set<number>

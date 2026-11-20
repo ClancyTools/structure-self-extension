@@ -1,4 +1,4 @@
-import { analyze, parseBlocks } from "../src/analyzer"
+import { analyze, parseBlocks, rowPositions } from "../src/analyzer"
 import {
   chunk,
   fresh,
@@ -190,6 +190,22 @@ describe("analyze", () => {
     expect(
       fixedText?.startsWith("CREATE TABLE `custom` (`id` int);\n\nINSERT INTO")
     ).toBe(true)
+  })
+})
+
+describe("rowPositions", () => {
+  it("numbers rows from 1 within each block", () => {
+    const text = structure([
+      [1, 2, 3],
+      [4, 5],
+    ])
+
+    expect(rowPositions(text).map(row => row.position)).toEqual([1, 2, 3, 1, 2])
+    expect(rowPositions(text)[0]).toEqual({
+      line: 6,
+      endCharacter: "('1')".length,
+      position: 1,
+    })
   })
 })
 

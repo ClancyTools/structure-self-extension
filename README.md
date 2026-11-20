@@ -54,6 +54,12 @@ Not reported:
 - Files that still have merge conflict markers. Both sides' rows are present until you resolve them, so the
   diagnostics appear once the markers are gone.
 
+### Row numbers
+
+Each row in an open `structure-self.sql` shows its position in its INSERT block after the line, in a muted
+color: the fifth row of every block has `#5` next to it. This makes it easy to see where a block ends, and how
+close it is to 50, without counting lines. The numbers update as you edit.
+
 ### Quick fix
 
 On any of the diagnostics, press `Cmd+.` (or click the lightbulb) and choose **Rebuild INSERT blocks the way

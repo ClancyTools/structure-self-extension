@@ -5,6 +5,12 @@ All notable changes to this extension are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.0.2] - 2026-11-19
+
+### Added
+
+- Each row shows its position within its INSERT block (`#1` to `#50`) after the line.
+
 ## [0.0.1] - 2026-11-18
 
 ### Added

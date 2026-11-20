@@ -5,6 +5,7 @@ import {
   StructureSelfCodeActionProvider,
   toDiagnostics,
 } from "./diagnostics"
+import { createRowNumberDecoration, decorateRowNumbers } from "./decorations"
 import {
   isStructureSelf,
   migrationVersions,
@@ -19,6 +20,11 @@ const DEBOUNCE_MS = 300
 export function activate(context: vscode.ExtensionContext): void {
   const collection = vscode.languages.createDiagnosticCollection(SOURCE)
   const timers = new Map<string, ReturnType<typeof setTimeout>>()
+  const rowNumbers = createRowNumberDecoration()
+  const decorateOpenEditors = (document?: vscode.TextDocument) =>
+    vscode.window.visibleTextEditors
+      .filter(editor => !document || editor.document === document)
+      .forEach(editor => decorateRowNumbers(editor, rowNumbers))
 
   const checkText = (uri: vscode.Uri, text: string) => {
     collection.set(
@@ -89,9 +95,12 @@ export function activate(context: vscode.ExtensionContext): void {
         setTimeout(() => {
           timers.delete(key)
           checkText(document.uri, document.getText())
+          decorateOpenEditors(document)
         }, DEBOUNCE_MS)
       )
     }),
+    rowNumbers,
+    vscode.window.onDidChangeVisibleTextEditors(() => decorateOpenEditors()),
     vscode.workspace.onDidCloseTextDocument(document => checkUri(document.uri)),
     vscode.languages.registerCodeActionsProvider(
       { pattern: STRUCTURE_GLOB },
@@ -105,6 +114,7 @@ export function activate(context: vscode.ExtensionContext): void {
     { dispose: () => timers.forEach(timer => clearTimeout(timer)) }
   )
 
+  decorateOpenEditors()
   void checkAll()
 }
 
